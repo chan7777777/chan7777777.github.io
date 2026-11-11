@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>달려라 거북군!</title>
+<style>
+:root{--panel:rgba(15,15,35,.72);--text:#fff;--accent:#ffd54a;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;overflow:hidden;background:#16263a;font-family:"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;color:var(--text);user-select:none}
+#c{position:fixed;inset:0}
+.hud{position:fixed;left:0;right:0;top:env(safe-area-inset-top,0px);padding:12px;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.row{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.pill{background:var(--panel);border-radius:14px;padding:6px 12px;font-weight:700;font-size:15px}
+.bar{position:fixed;left:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 36px);width:min(120px,30vw);height:26px;background:rgba(0,0,0,.55);border-radius:13px;overflow:hidden;z-index:2;transition:box-shadow .3s}
+.bar.fever{box-shadow:0 0 14px 4px #ffb300}
+.fever #hp{background:#ffb300}
+#hp{height:100%;width:100%;background:#5ddb6a;transition:width .15s}
+#hpt{position:absolute;inset:0;text-align:center;font-size:12px;line-height:26px;font-weight:700;white-space:nowrap}
+.warn #hp{background:#ff5252;animation:p .5s infinite alternate}
+@keyframes p{to{opacity:.5}}
+#prog{height:8px;background:rgba(0,0,0,.4);border-radius:6px;overflow:hidden;position:relative}
+#progf{height:100%;width:0;background:var(--accent)}
+#inv{position:fixed;left:0;right:0;bottom:env(safe-area-inset-bottom,0px);padding:12px;display:flex;gap:8px;justify-content:flex-end}
+.it{pointer-events:auto;background:var(--panel);border:2px solid transparent;color:var(--text);border-radius:16px;padding:6px 8px;font-size:12px;font-weight:700;cursor:pointer;width:74px;font-family:inherit}
+.it small{display:block;font-size:10px;font-weight:500;opacity:.8;margin-top:2px;line-height:1.25}
+.it span{display:block;font-size:22px}
+.it:disabled{opacity:.35;cursor:default}
+.it:not(:disabled):active{transform:scale(.95);border-color:var(--accent)}
+.tx{position:fixed;left:0;right:0;text-align:center;font-weight:800;text-shadow:0 2px 10px rgba(0,0,0,.7);opacity:0;transition:opacity .5s;pointer-events:none}
+#toast{top:36%;font-size:24px}
+#wt{top:18%;font-size:clamp(30px,8vw,54px)}
+.ov{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(10,10,30,.6);text-align:center;padding:20px}
+.ov.hide{display:none}
+h1{margin:0;font-size:clamp(34px,9vw,60px);text-shadow:0 4px 0 #2e7d32,0 6px 14px rgba(0,0,0,.5)}
+.ov p{margin:0;font-size:16px;line-height:1.5}
+.btn{background:var(--accent);color:#3a2a00;border:0;border-radius:18px;padding:14px 34px;font-size:20px;font-weight:800;cursor:pointer;font-family:inherit}
+.cr{opacity:0;animation:up .9s ease forwards;animation-delay:var(--d,0s)}
+@keyframes up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+#end{background:rgba(25,18,45,.5);overflow-y:auto;justify-content:flex-start}
+#endc{margin:auto;width:100%;max-width:520px;display:flex;flex-direction:column;gap:16px;padding:10px 0}
+.worlds{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.wc{background:var(--panel);border-radius:14px;padding:10px 4px}
+.wc span{display:block;font-size:28px}.wc b{display:block;font-size:15px}.wc small{display:block;font-size:11px;opacity:.85;line-height:1.4}
+.stats{display:grid;gap:6px}
+.st{display:flex;justify-content:space-between;gap:10px;background:var(--panel);border-radius:12px;padding:8px 14px;font-size:15px}
+</style>
+</head>
+<body>
+<div id="c"></div>
+<div class="hud">
+  <div class="row"><div class="pill" id="stage">1-1 숲</div><div class="pill" id="dist">0m</div><div class="pill" id="best">최고 0m</div></div>
+  <div id="prog"><div id="progf"></div></div>
+</div>
+<div class="bar" id="bar"><div id="hp"></div><div id="hpt">100</div></div>
+<div class="tx" id="wt"></div><div class="tx" id="toast"></div>
+<button class="it" id="mute" style="position:fixed;right:12px;top:calc(env(safe-area-inset-top,0px) + 74px);min-width:0;width:40px;height:40px;padding:0;font-size:18px;border-radius:50%;z-index:2">🎵</button>
+<div id="inv">
+  <button class="it" id="i0" disabled><span>🥬</span>상추 <b>0</b><small>체력 +20</small></button>
+  <button class="it" id="i1" disabled><span>🍉</span>수박 <b>0</b><small>체력 +40</small></button>
+  <button class="it" id="i2" disabled><span>💊</span>영양제 <b>0</b><small>15초간 체력소모감소</small></button>
+</div>
+<div class="ov" id="start">
+  <h1>🐢 달려라 거북군!</h1>
+  <p>거북이는 쉬지 않고 달려요.<br>중간 지점과 스테이지 끝에서 아이템을 얻어요.<br>체력이 바닥나기 전에 먹여주세요!</p>
+  <button class="btn" id="go">시작하기</button>
+</div>
+<div class="ov hide" id="end"><div id="endc"></div></div>
+<div class="ov hide" id="over">
+  <h1 id="ot">💀 거북군 사망</h1>
+  <p id="res"></p>
+  <button class="btn" id="again">다시 달리기</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const SPEED = 4, FEVER_SPEED = 7, FEVER_TIME = 3.5, MAX_HP = 100, TOTAL = 24;
+const ITEMS = [{n:'상추', e:'🥬', w:55}, {n:'수박', e:'🍉', w:30}, {n:'영양제', e:'💊', w:15}];
+const $ = id => document.getElementById(id);
+const R = (a, b) => a + Math.random() * (b - a), P = a => a[Math.random() * a.length | 0];
+const len = k => 90 + 15 * k;
+const starts = []; { let s = 0; for (let k = 0; k < TOTAL; k++){ starts.push(s); s += len(k); } }
+
+// ---------- renderer ----------
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+$('c').appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x16263a);
+scene.fog = new THREE.Fog(0x16263a, 25, 120);
+const cam = new THREE.PerspectiveCamera(50, 1, 0.1, 220);
+const hemi = new THREE.HemisphereLight(0x88aacc, 0x223322, 0.7); scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xffe6b0, 0.8); sun.position.set(-6, 10, 6); scene.add(sun);
+const glow = new THREE.PointLight(0xffd9a0, 0.9, 14); glow.position.set(2, 3, 3); scene.add(glow);
+function resize(){
+  renderer.setSize(innerWidth, innerHeight);
+  cam.aspect = innerWidth / innerHeight;
+  const far = innerWidth < innerHeight ? 1.5 : 1;
+  cam.position.set(3.6 * far, 2.6 * far, 5.4 * far);
+  cam.lookAt(0, 0.9, 0);
+  cam.updateProjectionMatrix();
+}
+addEventListener('resize', resize); resize();
+
+// ---------- low-poly helpers ----------
+const MC = {}, GE = {
+  cone: new THREE.ConeGeometry(1, 1, 6), cyl: new THREE.CylinderGeometry(1, 1, 1, 6),
+  ico0: new THREE.IcosahedronGeometry(1, 0), ico1: new THREE.IcosahedronGeometry(1, 1),
+  box: new THREE.BoxGeometry(1, 1, 1), oct: new THREE.OctahedronGeometry(1, 0)
+};
+const mt = (c, e) => { const k = c + '_' + (e || 0); return MC[k] || (MC[k] = new THREE.MeshStandardMaterial({color:c, emissive:e || 0, flatShading:true, roughness:1})); };
+const part = (g, c, s, p, e) => { const o = new THREE.Mesh(GE[g], mt(c, e)); o.scale.set(...s); o.position.set(...p); return o; };
+const grp = (...a) => { const g = new THREE.Group(); a.forEach(o => g.add(o)); return g; };
+
+// ---------- worlds ----------
+const W = [
+ {n:'숲', e:'🌲', sky:0x16263a, gr:0x2f4d33, path:0x5a4632, hs:0x88aacc, hg:0x223322, sun:0xffe6b0, pc:0xffee66, pv:-0.1, ps:.3,
+  gen(){ const r = Math.random();
+    if (r < .72){ const c = P([0x1f5a3a, 0x2a6b3f, 0x1a4a46]); return grp(part('cyl', 0x4a3426, [.3,1.4,.3], [0,.7,0]), part('cone', c, [1.4,3.2,1.4], [0,2.9,0]), part('cone', c, [1,2,1], [0,4.4,0])); }
+    if (r < .88) return grp(part('ico0', 0x6a6a78, [.9,.6,.9], [0,.3,0]));
+    return grp(part('cyl', 0xeeeeee, [.15,.6,.15], [0,.3,0]), part('cone', 0xff6b8a, [.6,.5,.6], [0,.8,0], 0x661a2a)); }},
+ {n:'도시', e:'🏙️', sky:0x1c1c34, gr:0x2c2c3a, path:0x3a3a4a, hs:0x6a6ab0, hg:0x1a1a2a, sun:0x9ab0ff, pc:0x66ccff, pv:-6, ps:.12,
+  gen(sx){ if (Math.random() < .25){ const g = grp(part('cyl', 0x555566, [.08,3,.08], [0,1.5,0]), part('ico0', 0xffe08a, [.3,.3,.3], [0,3.1,0], 0xffc050)); g.userData.near = 1; return g; }
+    const h = R(4, 14), w = R(2, 4), g = grp(part('box', P([0x2a2c46, 0x34365a, 0x25263c]), [w,h,w], [0,h/2,0]));
+    for (let i = 0; i < 8; i++) g.add(part('box', 0xffd77a, [.05,.5,.35], [-sx * (w/2 + .03), R(1, h - 1), R(-w/2 + .4, w/2 - .4)], 0xffc050));
+    return g; }},
+ {n:'사막', e:'🏜️', sky:0xc98a55, gr:0xd2a867, path:0xb98a4e, hs:0xffcc99, hg:0x886644, sun:0xffb070, pc:0xf0d8a0, pv:-0.3, ps:.15,
+  gen(){ const r = Math.random();
+    if (r < .4) return grp(part('cyl', 0x4a8a4a, [.35,2.2,.35], [0,1.1,0]), part('cyl', 0x4a8a4a, [.2,.9,.2], [.55,1.5,0]), part('cyl', 0x4a8a4a, [.2,.7,.2], [-.55,1.2,0]));
+    if (r < .8) return grp(part('ico1', 0xdcb872, [R(2,5), R(.6,1.2), R(2,5)], [0,0,0]));
+    return grp(part('ico0', 0x9a6a4a, [1.1,.9,1], [0,.4,0])); }},
+ {n:'툰드라', e:'❄️', sky:0x6f90b8, gr:0xdde8f2, path:0xaabbd0, hs:0xccddff, hg:0x8899aa, sun:0xffffff, pc:0xffffff, pv:-1.6, ps:.22,
+  gen(){ const r = Math.random();
+    if (r < .55){ const c = P([0xdfe9f5, 0xbcd4ea]); return grp(part('cyl', 0x4a3a30, [.25,1,.25], [0,.5,0]), part('cone', c, [1.3,2.8,1.3], [0,2.3,0]), part('cone', c, [.9,1.8,.9], [0,3.8,0])); }
+    if (r < .8) return grp(part('oct', 0x7fd8ff, [.5,R(1.5,3),.5], [0,1.2,0], 0x1a5a7a));
+    return grp(part('ico1', 0xffffff, [2,.7,2], [0,0,0])); }},
+ {n:'우주', e:'🚀', sky:0x05051a, gr:0x241f3a, path:0x3a3360, hs:0x6666cc, hg:0x110d22, sun:0xaaaaff, pc:0xffffff, pv:0, ps:.18,
+  gen(){ if (Math.random() < .15){ const s = R(2, 5), g = grp(part('ico1', P([0x4a7ad8, 0xd86a4a, 0x8a4ad8]), [s,s,s], [0,0,0], 0x151530)); g.userData.y = R(6, 14); g.userData.spin = 1; return g; }
+    const s = R(.5, 2), g = grp(part('ico0', 0x6a6a88, [s*1.2,s,s], [0,0,0])); g.userData.y = R(.5, 9); g.userData.spin = 1; return g; }},
+ {n:'공허', e:'🕳️', sky:0x0a0010, gr:0x170d26, path:0x2a1744, hs:0x9a4aff, hg:0x0a0014, sun:0xb06aff, pc:0xcc66ff, pv:.8, ps:.2,
+  gen(){ const r = Math.random();
+    if (r < .5){ const h = R(2, 6); return grp(part('oct', 0x6a2cbf, [R(.5,1.2), h, R(.5,1.2)], [0, h, 0], 0x3a0d7a)); }
+    if (r < .8){ const h = R(6, 14); return grp(part('box', 0x120820, [1,h,1], [0,h/2,0]), part('box', 0xff4aff, [1.05,.15,1.05], [0,h,0], 0xff2aff)); }
+    const g = grp(part('box', 0x2a1050, [1,1,1], [0,0,0], 0x4a1a9a)); g.userData.y = R(2, 8); g.userData.spin = 1; return g; }}
+];
+
+// ground / path / dashes
+const groundMat = new THREE.MeshStandardMaterial({color:0x2f4d33, flatShading:true, roughness:1});
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(500, 500), groundMat); ground.rotation.x = -Math.PI/2; scene.add(ground);
+const pathMat = new THREE.MeshStandardMaterial({color:0x5a4632, flatShading:true, roughness:1});
+const path = new THREE.Mesh(new THREE.PlaneGeometry(6, 500), pathMat); path.rotation.x = -Math.PI/2; path.position.y = .02; scene.add(path);
+const dashMat = new THREE.MeshStandardMaterial({color:0x7a6652, roughness:1});
+const dashes = [];
+for (let i = 0; i < 26; i++){ const d = new THREE.Mesh(GE.box, dashMat); d.scale.set(.25, .02, 1.6); d.position.set(R(-1.5, 1.5), .05, 12 - i * 8); scene.add(d); dashes.push(d); }
+
+// scenery pool
+const RANGE = 210, N = 48, pool = [];
+let curW = 0;
+function spawn(z){
+  const sx = Math.random() < .5 ? -1 : 1, o = W[curW].gen(sx);
+  o.userData.world = curW;
+  o.position.set(sx * (o.userData.near ? 3.7 : R(5, 20)), o.userData.y || 0, z);
+  o.rotation.y = Math.random() * 6; o.scale.setScalar(R(.85, 1.25));
+  scene.add(o); return o;
+}
+for (let i = 0; i < N; i++) pool.push(spawn(14 - i * RANGE / N + R(-2, 2)));
+function enterWorld(w){
+  curW = w;
+  pool.forEach((o, i) => { if (o.position.z < -2){ scene.remove(o); pool[i] = spawn(o.position.z); } });
+}
+
+// particles
+const PN = 260, pg = new THREE.BufferGeometry(), pp = new Float32Array(PN * 3);
+for (let i = 0; i < PN; i++){ pp[i*3] = R(-18, 18); pp[i*3+1] = R(0, 14); pp[i*3+2] = R(-70, 12); }
+pg.setAttribute('position', new THREE.BufferAttribute(pp, 3));
+const pm = new THREE.PointsMaterial({color:0xffee66, size:.3, transparent:true, opacity:.9, depthWrite:false});
+scene.add(new THREE.Points(pg, pm));
+
+// gate
+const gate = new THREE.Group();
+[-3.4, 3.4].forEach(x => gate.add(part('cyl', 0xdddddd, [.2,4,.2], [x,2,0])));
+const banner = part('box', 0xff5252, [7,.9,.25], [0,4,0], 0x551111); gate.add(banner); scene.add(gate);
+
+// ---------- turtle (low-poly) ----------
+const turtle = new THREE.Group(); scene.add(turtle);
+const body = new THREE.Group(); turtle.add(body);
+body.add(part('ico1', 0x5e8a3e, [1.2,.8,1.5], [0,1,0]));
+for (let i = 0; i < 6; i++){ const a = i / 6 * 6.283; body.add(part('ico0', 0x7a5a30, [.32,.22,.32], [Math.cos(a) * .6, 1.58, Math.sin(a) * .8])); }
+body.add(part('ico0', 0x7a5a30, [.4,.25,.4], [0,1.78,0]));
+body.add(part('cyl', 0xe0d090, [1.05,.22,1.35], [0,.55,0]));
+const head = grp(part('ico1', 0x9bbf6a, [.5,.45,.55], [0,0,0]), part('ico0', 0xc4dc92, [.28,.22,.28], [0,-.1,-.45]), part('ico0', 0x111111, [.09,.09,.09], [-.22,.12,-.3]), part('ico0', 0x111111, [.09,.09,.09], [.22,.12,-.3]));
+head.position.set(0, 1.05, -1.85); body.add(head);
+const tail = part('cone', 0x9bbf6a, [.15,.5,.15], [0,.7,1.75]); tail.rotation.x = Math.PI / 2; body.add(tail);
+const legs = [];
+[[-.85,-.8,0], [.85,-.8,1], [-.85,.8,1], [.85,.8,0]].forEach(([x, z, ph]) => {
+  const p = grp(part('cyl', 0x9bbf6a, [.2,.4,.2], [0,-.25,0]), part('ico0', 0x9bbf6a, [.28,.2,.3], [0,-.5,-.08]));
+  p.position.set(x, .65, z); turtle.add(p); legs.push({p, ph: ph * Math.PI});
+});
+
+// ---------- tombstone / death animation ----------
+const tomb = new THREE.Group(); tomb.visible = false; scene.add(tomb);
+tomb.add(part('box', 0x8a8a9a, [1.5,1.6,.45], [0,.8,0]));
+const tcap = part('cyl', 0x8a8a9a, [.75,.45,.75], [0,1.6,0]); tcap.rotation.x = Math.PI / 2; tomb.add(tcap);
+tomb.add(part('ico1', 0x5a4632, [1.3,.3,1], [0,.1,0]));
+[-.55, .05, .55].forEach(x => tomb.add(part('ico0', 0xff8aa8, [.12,.12,.12], [x,.4,-.7])));
+{ const cv = document.createElement('canvas'); cv.width = cv.height = 256; const cx = cv.getContext('2d');
+  cx.fillStyle = '#4a4a5a'; cx.textAlign = 'center'; cx.font = 'bold 70px Arial'; cx.fillText('R.I.P', 128, 110); cx.font = '80px Arial'; cx.fillText('🐢', 128, 205);
+  const tp = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 1.1), new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(cv), transparent:true}));
+  tp.position.set(0, 1, -.235); tp.rotation.y = Math.PI; tomb.add(tp); }
+const puffs = [];
+function deathAnim(dt){
+  const e = Math.min(1, deadT / .9);
+  if (!tombOn){ turtle.rotation.z = e * 1.45; turtle.position.y = Math.sin(e * Math.PI / 2) * 1.1; }
+  if (deadT > 1.3){
+    const p = Math.min(1, (deadT - 1.3) / 1.9), s = p * p * (3 - 2 * p);
+    cam.position.lerpVectors(camFrom, camTo, s); cam.lookAt(0, 1, 0);
+  }
+  if (deadT > 3.4){
+    const k = Math.min(1, (deadT - 3.4) / .6);
+    if (!tombOn){
+      tombOn = true; tomb.visible = true;
+      for (let i = 0; i < 14; i++){
+        const m = new THREE.Mesh(GE.ico0, mt(0xcfcfdf)); m.position.set(R(-1, 1), R(.5, 1.5), R(-1, 1)); m.scale.setScalar(R(.12, .3));
+        m.userData.vel = new THREE.Vector3(R(-3, 3), R(2, 5), R(-3, 3)); scene.add(m); puffs.push(m);
+      }
+    }
+    tomb.scale.setScalar(Math.max(.01, k * (1 + .2 * Math.sin(k * Math.PI))));
+    const ts = Math.max(0, 1 - (deadT - 3.4) / .35); turtle.scale.setScalar(Math.max(.001, ts)); turtle.visible = ts > 0;
+  }
+  puffs.forEach(m => { m.position.addScaledVector(m.userData.vel, dt); m.userData.vel.y -= 8 * dt; m.scale.multiplyScalar(1 - dt * 1.5); if (m.position.y < 0) m.visible = false; });
+  if (deadT > 5) $('over').classList.remove('hide');
+}
+
+// ---------- ending ----------
+const halo = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16), new THREE.MeshBasicMaterial({color:0xfff3d0, transparent:true, opacity:0, depthWrite:false, fog:false}));
+halo.position.set(0, 5, -50); halo.visible = false; scene.add(halo);
+function winAnim(dt){
+  halo.visible = true; halo.scale.setScalar(3 + winT * 6); halo.material.opacity = Math.min(.6, winT * .15);
+  glow.color.set(0xfff1c8); glow.position.set(0, 3, -3); glow.intensity = Math.min(1.8, .9 + winT * .3);
+  if (winT > 2){ const e = Math.min(1, (winT - 2) / 2.4), s = e * e * (3 - 2 * e); turtle.rotation.y = -2.55 * s; }
+  if (winT > 1.5){ const p = Math.min(1, (winT - 1.5) / 4), s = p * p * (3 - 2 * p); cam.position.lerpVectors(camFrom, camTo, s); cam.lookAt(0, 1, 0); }
+  if (winT > 7 && !endShown){ endShown = true; showEnding(); }
+}
+function fmtT(s){ s = Math.floor(s); return Math.floor(s / 60) + '분 ' + (s % 60) + '초'; }
+function showEnding(){
+  const wl = W.map((w, i) => Math.round((i < 5 ? starts[i * 4 + 4] : starts[23] + len(23)) - starts[i * 4]));
+  const st = (a, b) => '<div class="st"><span>' + a + '</span><b>' + b + '</b></div>';
+  $('endc').innerHTML =
+    '<div class="cr"><h1>🎉 공허를 지나 도착!</h1><p>달려라 거북군! 완주</p></div>' +
+    '<div class="cr worlds" style="--d:.8s">' + W.map((w, i) => '<div class="wc"><span>' + w.e + '</span><b>' + w.n + '</b><small>' + (i + 1) + '-1 ~ ' + (i + 1) + '-4<br>' + wl[i] + 'm</small></div>').join('') + '</div>' +
+    '<div class="cr stats" style="--d:1.8s">' + st('총 이동 거리', Math.floor(dist) + 'm') + st('플레이 시간', fmtT(playT)) +
+      ITEMS.map((it, i) => st('사용한 ' + it.e + ' ' + it.n, used[i] + '개')).join('') + st('피버타임', feverCount + '회') +
+      (endNote ? '<div class="st"><span>' + endNote.trim() + '</span></div>' : '') + '</div>' +
+    '<div class="cr" style="--d:2.8s">' + (preview ? '<p style="opacity:.8;font-size:13px">(미리보용 예시 기록이에요)</p>' : '') + '<button class="btn" id="again2">다시 달리기</button></div>';
+  $('again2').onclick = reset; $('end').classList.remove('hide');
+}
+
+// ---------- piano BGM (Web Audio, calm & lazy) ----------
+let ac, master, bus, musicOn = true, level = 1, nextBar = 0, barIdx = 0;
+const mtof = m => 440 * Math.pow(2, (m - 69) / 12), BEAT = .98;
+const CH = [{b:36,n:[52,55,59,64]},{b:33,n:[52,55,60,64]},{b:38,n:[53,57,60,64]},{b:31,n:[50,55,59,64]},{b:29,n:[52,57,60,64]},{b:28,n:[55,59,62,64]},{b:33,n:[52,55,60,64]},{b:31,n:[50,55,59,64]}];
+function note(m, t, dur, vol){
+  const f = ac.createGain(), lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2400;
+  f.gain.setValueAtTime(.0001, t); f.gain.linearRampToValueAtTime(vol, t + .015); f.gain.exponentialRampToValueAtTime(.0001, t + dur);
+  [['triangle', 1, 1], ['sine', 2, .25], ['sine', 3, .08]].forEach(([ty, mul, g]) => {
+    const o = ac.createOscillator(), og = ac.createGain(); o.type = ty; o.frequency.value = mtof(m) * mul; og.gain.value = g;
+    o.connect(og); og.connect(f); o.start(t); o.stop(t + dur + .1);
+  });
+  f.connect(lp); lp.connect(bus);
+}
+function tick(){
+  while (nextBar < ac.currentTime + 2){
+    const c = CH[barIdx % 8], t = nextBar;
+    note(c.b, t, 3.6, .2);
+    [0, 1, 2, 3, 2, 1, 2, 3].forEach((p, j) => { if (Math.random() < .85) note(c.n[p], t + j * BEAT / 2 + (j % 2 ? .02 : 0), 2.4, j ? .07 : .1); });
+    if (Math.random() < .65) note(P([72, 74, 76, 79, 81]), t + BEAT * (1 + (Math.random() * 3 | 0)), 3, .08);
+    nextBar += BEAT * 4; barIdx++;
+  }
+}
+function startMusic(){
+  if (ac){ if (ac.state === 'suspended') ac.resume(); return; }
+  try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){ return; }
+  master = ac.createGain(); master.gain.value = musicOn ? .5 : 0; master.connect(ac.destination);
+  bus = ac.createGain(); bus.connect(master);
+  const dl = ac.createDelay(1), fb = ac.createGain(), lp = ac.createBiquadFilter(), wet = ac.createGain();
+  dl.delayTime.value = .42; fb.gain.value = .4; lp.type = 'lowpass'; lp.frequency.value = 1800; wet.gain.value = .45;
+  bus.connect(dl); dl.connect(lp); lp.connect(fb); fb.connect(dl); lp.connect(wet); wet.connect(master);
+  nextBar = ac.currentTime + .2; tick(); setInterval(tick, 500);
+}
+function musicGain(l){ if (l !== undefined) level = l; if (master) master.gain.setTargetAtTime(musicOn ? level * .5 : 0, ac.currentTime, .4); }
+function tone(f0, f1, t, dur, vol, type){
+  if (!ac || !musicOn) return;
+  const o = ac.createOscillator(), g = ac.createGain(); o.type = type || 'sine';
+  o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur * .8);
+  g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(vol, t + .01); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+  o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + dur + .05);
+}
+function sfx(k){
+  if (!ac) return; const t = ac.currentTime;
+  if (k === 'eat'){ tone(300, 600, t, .12, .25); tone(500, 900, t + .07, .1, .18, 'triangle'); }
+  else if (k === 'vit'){ tone(660, 990, t, .15, .2); tone(990, 1320, t + .1, .2, .18, 'triangle'); }
+  else if (k === 'win'){ [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, f, t + i * .35, 1.8, .12)); }
+  else if (k === 'fever'){ [880, 1175, 1568, 2093, 2637].forEach((f, i) => tone(f, f * 1.02, t + i * .07, .35, .2)); tone(1760, 3520, t + .35, .25, .08, 'triangle'); }
+}
+$('mute').onclick = () => { musicOn = !musicOn; $('mute').textContent = musicOn ? '🎵' : '🔇'; musicGain(); };
+document.addEventListener('visibilitychange', () => { if (ac) document.hidden ? ac.suspend() : ac.resume(); });
+
+// ---------- game ----------
+let state = 'start', t = 0, hp = MAX_HP, dist = 0, k = 0, half = false, slow = 0, fever = 0, deadT = 0, best = 0, lowWarned = false, winT = 0, endShown = false, preview = false, endNote = '', playT = 0, feverCount = 0, used = [0, 0, 0], gait = 0, tombOn = false, camFrom = new THREE.Vector3(), camTo = new THREE.Vector3();
+const inv = [0, 0, 0];
+try { best = +localStorage.getItem('turtleBest2') || 0; } catch(e){}
+$('best').textContent = '최고 ' + best + 'm';
+const pick = () => { let r = Math.random() * 100; for (let i = 0; i < 3; i++){ if ((r -= ITEMS[i].w) < 0) return i; } return 0; };
+const fade = (el, msg, ms) => { el.textContent = msg; el.style.opacity = 1; clearTimeout(el.t); el.t = setTimeout(() => el.style.opacity = 0, ms); };
+const toast = m => fade($('toast'), m, 1500);
+const drain = () => (0.8 + 0.03 * k) * (slow > 0 ? .5 : 1);
+const label = () => (Math.floor(k / 4) + 1) + '-' + (k % 4 + 1) + ' ' + W[curW].n;
+function refresh(){ inv.forEach((n, i) => { $('i' + i).disabled = n <= 0 || state !== 'play'; $('i' + i).querySelector('b').textContent = n; }); }
+function give(n, why){
+  const got = []; for (let i = 0; i < n; i++){ const j = pick(); inv[j]++; got.push(ITEMS[j].e); }
+  toast(why + ' ' + got.join(' ') + ' 획득!'); refresh();
+}
+function use(i){
+  if (state !== 'play' || inv[i] <= 0) return;
+  if (i < 2 && hp >= MAX_HP){ toast('체력이 가득 찼어요!'); return; }
+  inv[i]--; used[i]++; const before = hp; sfx(i === 2 ? 'vit' : 'eat');
+  if (i === 0){ hp = Math.min(MAX_HP, hp + 20); toast('🥬 체력 +20'); }
+  if (i === 1){ hp = Math.min(MAX_HP, hp + 40); toast('🍉 체력 +40'); }
+  if (i === 2){ slow = 15; toast('💊 15초간 체력 소모 절반!'); }
+  if (i < 2 && before < MAX_HP && hp >= MAX_HP){ fever = FEVER_TIME; feverCount++; sfx('fever'); fade($('wt'), '🔥 FEVER TIME!', 1800); toast('이동 속도 ' + FEVER_SPEED + ' · ' + FEVER_TIME + '초'); }
+  refresh();
+}
+[0, 1, 2].forEach(i => $('i' + i).addEventListener('click', () => use(i)));
+addEventListener('keydown', e => { if ('123'.includes(e.key) && e.key) use(+e.key - 1); });
+function reset(){
+  hp = MAX_HP; dist = 0; k = 0; half = false; slow = 0; fever = 0; deadT = 0; inv[0] = 1; inv[1] = inv[2] = 0;
+  turtle.rotation.z = 0; turtle.position.y = 0; state = 'play';
+  turtle.scale.setScalar(1); turtle.visible = true; tomb.visible = false; tombOn = false; lowWarned = false;
+  puffs.forEach(m => scene.remove(m)); puffs.length = 0;
+  halo.visible = false; turtle.rotation.y = 0; winT = 0; endShown = false; preview = false; playT = 0; feverCount = 0; used = [0, 0, 0];
+  glow.color.set(0xffd9a0); $('end').classList.add('hide');
+  glow.position.set(2, 3, 3); glow.intensity = .9; resize(); startMusic(); musicGain(1);
+  if (curW !== 0) enterWorld(0);
+  $('start').classList.add('hide'); $('over').classList.add('hide'); refresh();
+  fade($('wt'), W[0].e + ' 1. ' + W[0].n, 2200);
+}
+function finish(win){
+  state = win ? 'win' : 'dead'; refresh();
+  if (!win){ camFrom.copy(cam.position); const far = innerWidth < innerHeight ? 1.4 : 1; camTo.set(0, 1.7 * far, -5.8 * far); glow.position.set(0, 3.5, -4); glow.intensity = 1.4; musicGain(.25); }
+  const m = Math.floor(dist); let nb = '';
+  if (m > best && !preview){ best = m; nb = ' 🎉 신기록!'; try { localStorage.setItem('turtleBest2', best); } catch(e){} }
+  $('best').textContent = '최고 ' + best + 'm';
+  endNote = nb; $('ot').textContent = win ? '🎉 공허를 지나 도착!' : '💀 거북군 사망';
+  $('res').textContent = (win ? '모든 스테이지 클리어 · ' : label() + ' · ') + m + 'm 달렸어요' + nb;
+  if (win){ winT = 0; endShown = false; camFrom.copy(cam.position); const far = innerWidth < innerHeight ? 1.3 : 1; camTo.set(2.2 * far, 1.6 * far, 3.8 * far); sfx('win'); musicGain(.7); }
+}
+$('go').onclick = reset; $('again').onclick = reset;
+
+const skyT = new THREE.Color(), grT = new THREE.Color(), pathT = new THREE.Color(), c1 = new THREE.Color(), c2 = new THREE.Color();
+function update(dt){
+  t += dt;
+  const lowMul = state === 'play' && hp < 20 ? .3 + .7 * Math.max(0, hp) / 20 : 1;
+  const v = state === 'play' ? (fever > 0 ? FEVER_SPEED : SPEED) * lowMul : state === 'start' ? SPEED * .5 : state === 'win' ? SPEED * Math.max(0, 1 - winT / 1.6) : 0;
+  if (state === 'play'){
+    playT += dt; dist += v * dt; hp -= drain() * dt; if (slow > 0) slow -= dt; if (fever > 0) fever -= dt;
+    const s = starts[k], L = len(k);
+    if (!half && dist >= s + L / 2){ half = true; give(1, '중간 지점!'); }
+    if (dist >= s + L){
+      const bonus = 1 + Math.floor(k / 4);
+      k++; half = false;
+      if (k >= TOTAL){ finish(true); }
+      else {
+        give(bonus, '스테이지 클리어!');
+        const w = Math.floor(k / 4);
+        if (w !== curW){ enterWorld(w); fade($('wt'), W[w].e + ' ' + (w + 1) + '. ' + W[w].n, 2600); }
+      }
+    }
+    if (hp < 20 && !lowWarned){ lowWarned = true; toast('😮‍💨 체력이 낮아 점점 느려져요!'); } if (hp >= 20) lowWarned = false;
+    if (hp <= 0 && state === 'play'){ hp = 0; finish(false); }
+  }
+  if (state === 'dead'){
+    deadT += dt; deathAnim(dt);
+  }
+  if (state === 'win'){
+    winT += dt; winAnim(dt);
+  }
+  // scenery
+  pool.forEach((o, i) => {
+    o.position.z += v * dt; if (o.userData.spin) o.rotation.y += dt * .5;
+    if (o.position.z > 14){ scene.remove(o); pool[i] = spawn(o.position.z - RANGE); }
+  });
+  dashes.forEach(d => { d.position.z += v * dt; if (d.position.z > 14) d.position.z -= 208; });
+  const a = pg.attributes.position, w = W[curW];
+  for (let i = 0; i < PN; i++){
+    let z = pp[i*3+2] + v * dt, y = pp[i*3+1] + (state === 'win' ? .6 : w.pv) * dt + Math.sin(t * 2 + i) * .004;
+    if (z > 12) z -= 82; if (y < 0) y += 14; if (y > 14) y -= 14;
+    pp[i*3+1] = y; pp[i*3+2] = z;
+  }
+  a.needsUpdate = true;
+  pm.color.lerp(c1.setHex(state === 'win' ? 0xffe9a0 : w.pc), dt * 2); pm.size += (w.ps - pm.size) * dt * 2;
+  // goal gate
+  const goal = starts[k] + len(k) / (half ? 1 : 2) , tg = goal - dist;
+  gate.position.z = -tg; gate.visible = state === 'play' && tg < 120;
+  banner.material = mt(half ? 0xff5252 : 0xffd54a, half ? 0x551111 : 0x554400);
+  // walk
+  const run = v > 0 ? 1 : 0, f = Math.pow(v / SPEED, hp < 20 && state === 'play' ? 1.6 : 1) * 9; gait += dt * f;
+  legs.forEach(l => l.p.rotation.x = run * Math.sin(gait + l.ph) * (.35 + .25 * Math.min(1, v / SPEED)));
+  body.position.y = run * Math.abs(Math.sin(gait)) * .08;
+  head.position.z = -1.85 - run * Math.sin(gait) * .05;
+  tail.rotation.z = Math.sin(t * 6) * .3 * run;
+  // biome blend (sub-stage shifts tone and fog)
+  const sub = k % 4;
+  skyT.setHex(w.sky).offsetHSL(sub * .015, 0, -sub * .012);
+  grT.setHex(w.gr).offsetHSL(sub * .015, 0, -sub * .01);
+  pathT.setHex(w.path);
+  if (state === 'win'){ skyT.setHex(0xf3e6cf); grT.setHex(0xc9bfe0); pathT.setHex(0xe8dcc4); }
+  const r = dt * 1.5;
+  scene.background.lerp(skyT, r); scene.fog.color.copy(scene.background);
+  scene.fog.near += (25 - sub * 3 - scene.fog.near) * r; scene.fog.far += (120 - sub * 12 - scene.fog.far) * r;
+  groundMat.color.lerp(grT, r); pathMat.color.lerp(pathT, r); dashMat.color.copy(pathMat.color).offsetHSL(0, 0, .08);
+  const win_ = state === 'win'; hemi.color.lerp(c2.setHex(win_ ? 0xfff4dc : w.hs), r); hemi.groundColor.lerp(c2.setHex(win_ ? 0xcfc3e6 : w.hg), r); sun.color.lerp(c2.setHex(win_ ? 0xffe9b8 : w.sun), r);
+  document.body.style.background = '#' + scene.background.getHexString();
+  // HUD
+  $('hp').style.width = (hp / MAX_HP * 100) + '%';
+  cam.fov += ((fever > 0 && state === 'play' ? 58 : 50) - cam.fov) * dt * 4; cam.updateProjectionMatrix();
+  $('bar').classList.toggle('fever', fever > 0 && state === 'play');
+  $('hpt').textContent = '❤️ ' + Math.ceil(hp) + (slow > 0 ? ' 💊' : '') + (fever > 0 && state === 'play' ? ' 🔥' + Math.ceil(fever) : '');
+  $('bar').classList.toggle('warn', hp < 20 && state === 'play');
+  $('stage').textContent = label();
+  $('dist').textContent = Math.floor(dist) + 'm';
+  $('progf').style.width = Math.min(100, (dist - starts[Math.min(k, TOTAL - 1)]) / len(Math.min(k, TOTAL - 1)) * 100) + '%';
+}
+let last = performance.now();
+(function loop(now){
+  const dt = Math.min(.05, (now - last) / 1000); last = now;
+  update(dt); renderer.render(scene, cam); requestAnimationFrame(loop);
+})(last);
+</script>
+</body>
+</html>
