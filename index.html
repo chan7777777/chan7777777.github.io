@@ -1,0 +1,340 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BLACKOUT ARCADE</title>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Noto+Sans+KR:wght@400;700;900&display=swap');
+
+:root {
+  --bg: #111312;
+  --panel: #f4f4ef;
+  --ink: #171b19;
+  --lime: #c6ff00;
+  --pink: #ff438b;
+  --blue: #56d9ff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(#ffffff0d 1px, transparent 1px),
+    linear-gradient(90deg, #ffffff0d 1px, transparent 1px);
+  background-size: 48px 48px;
+  color: white;
+  font-family: 'Noto Sans KR', sans-serif;
+}
+
+/* HEADER */
+
+header {
+  height: 76px;
+  padding: 0 7%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid #333a35;
+}
+
+.logo {
+  background: white;
+  color: black;
+  border: 3px solid black;
+  box-shadow: 4px 4px 0 var(--lime);
+  padding: 9px 13px;
+  font-weight: 900;
+  font-size: 16px;
+  transform: rotate(-2deg);
+}
+
+.logo span {
+  color: #83b900;
+}
+
+.header-right {
+  color: var(--lime);
+  font-family: monospace;
+  font-size: 12px;
+  letter-spacing: 2px;
+}
+
+/* HERO */
+
+.hero {
+  text-align: center;
+  padding: 45px 15px 15px;
+}
+
+.mascot-frame {
+  width: 290px;
+  height: 290px;
+  max-width: 75vw;
+  max-height: 75vw;
+  margin: 0 auto;
+  border-radius: 50%;
+  background: var(--lime);
+  border: 9px solid #202821;
+  box-shadow:
+    0 0 0 4px var(--lime),
+    0 0 35px #c6ff0038;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.mascot-inner {
+  width: 83%;
+  height: 83%;
+  border-radius: 50%;
+  background: #f4f4ef;
+  border: 5px solid #171b19;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.mascot {
+  font-size: 135px;
+  line-height: 1;
+  filter: drop-shadow(5px 7px 0 #0002);
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(-3deg); }
+  50% { transform: translateY(-9px) rotate(3deg); }
+}
+
+.mascot-tag {
+  position: absolute;
+  bottom: -15px;
+  right: -12px;
+  background: var(--pink);
+  color: black;
+  border: 3px solid black;
+  padding: 8px 13px;
+  font-size: 11px;
+  font-weight: 900;
+  transform: rotate(5deg);
+}
+
+.hero h1 {
+  margin: 38px 0 5px;
+  font-family: 'Black Ops One', sans-serif;
+  font-size: clamp(32px, 7vw, 57px);
+  letter-spacing: 2px;
+}
+
+.hero h1 span {
+  color: var(--lime);
+}
+
+.hero p {
+  color: #9da59e;
+  font-size: 13px;
+  letter-spacing: 2px;
+  margin: 10px 0;
+}
+
+/* GAME LIST */
+
+main {
+  max-width: 950px;
+  margin: 40px auto 100px;
+  padding: 0 24px;
+}
+
+.section-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.section-heading h2 {
+  font-size: 17px;
+  letter-spacing: 1px;
+}
+
+.game-count {
+  color: var(--lime);
+  font-family: monospace;
+  font-size: 13px;
+}
+
+.games {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 17px;
+}
+
+.game-card {
+  display: block;
+  position: relative;
+  text-decoration: none;
+  background: var(--panel);
+  color: var(--ink);
+  border: 4px solid #171b19;
+  box-shadow: 6px 6px 0 #39413b;
+  transition: transform .15s, box-shadow .15s;
+  overflow: hidden;
+}
+
+.game-card:hover {
+  transform: translate(-3px, -3px);
+  box-shadow: 9px 9px 0 var(--lime);
+}
+
+.game-card:active {
+  transform: translate(3px, 3px);
+  box-shadow: 1px 1px 0 #39413b;
+}
+
+.card-top {
+  height: 9px;
+  background: var(--lime);
+}
+
+.game-card:nth-child(2) .card-top { background: var(--pink); }
+.game-card:nth-child(3) .card-top { background: var(--blue); }
+.game-card:nth-child(4) .card-top { background: #ffbb43; }
+
+.card-content {
+  min-height: 112px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.game-icon {
+  font-size: 32px;
+}
+
+.game-name {
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.game-description {
+  font-size: 11px;
+  color: #777;
+  margin-top: 4px;
+}
+
+.play-label {
+  margin-top: 12px;
+  font-size: 10px;
+  font-family: monospace;
+  font-weight: bold;
+  color: #697b3d;
+  letter-spacing: 1px;
+}
+
+footer {
+  border-top: 2px solid #333a35;
+  padding: 30px 15px;
+  text-align: center;
+  color: #707970;
+  font-family: monospace;
+  font-size: 11px;
+  letter-spacing: 2px;
+}
+
+@media(max-width: 520px) {
+  header {
+    padding: 0 20px;
+  }
+
+  .games {
+    gap: 12px;
+  }
+
+  .card-content {
+    padding: 12px;
+    min-height: 105px;
+  }
+
+  .game-name {
+    font-size: 14px;
+  }
+
+  .mascot-frame {
+    width: 250px;
+    height: 250px;
+  }
+
+  .mascot {
+    font-size: 110px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <div class="logo"><span>★</span> BLACKOUT</div>
+  <div class="header-right">INSERT COIN ▣</div>
+</header>
+
+<section class="hero">
+
+  <div class="mascot-frame">
+    <div class="mascot-inner">
+      <div class="mascot">🐢</div>
+    </div>
+    <div class="mascot-tag">PLAYER 001</div>
+  </div>
+
+  <h1>MY <span>ARCADE.</span></h1>
+  <p>SMALL GAMES, BIG FUN.</p>
+
+</section>
+
+<main>
+
+  <div class="section-heading">
+    <h2>▣ GAME COLLECTION</h2>
+    <div class="game-count">01 / GAMES</div>
+  </div>
+
+  <div class="games">
+
+    <!-- GAME 001 -->
+    <a class="game-card" href="./game1.html">
+      <div class="card-top"></div>
+      <div class="card-content">
+        <div class="game-icon">🐢</div>
+        <div>
+          <div class="game-name">달려라 거북군!</div>
+          <div class="game-description">거북이의 신나는 질주</div>
+        </div>
+        <div class="play-label">▶ PLAY GAME 001</div>
+      </div>
+    </a>
+
+    <!-- 새 게임은 이 아래에 추가하면 돼 -->
+
+  </div>
+
+</main>
+
+<footer>
+  BLACKOUT ARCADE © 2026
+  <br><br>
+  MADE FOR FUN. PLAY FOR FUN.
+</footer>
+
+</body>
+</html>
